@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getSupabase, BUCKET, CHANNEL } from "@/lib/supabase";
+import ConfigGate from "@/components/ConfigGate";
 import { applySlowMo, record, sleep } from "@/lib/recording";
 
 const COUNTDOWN = 3;
@@ -10,6 +11,14 @@ type Msg = { title: string; sub?: string; spinner?: boolean; clear?: boolean } |
 type Guest = { id: string; name: string };
 
 export default function CameraPage() {
+  return (
+    <ConfigGate>
+      <Camera />
+    </ConfigGate>
+  );
+}
+
+function Camera() {
   const previewRef = useRef<HTMLVideoElement>(null);
   const resultUrlRef = useRef<string | null>(null);
   const [msg, setMsg] = useState<Msg>({ title: "Starting camera…" });

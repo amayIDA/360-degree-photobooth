@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { getSupabase, CHANNEL } from "@/lib/supabase";
+import ConfigGate from "@/components/ConfigGate";
 
 type Step = "form" | "ready" | "progress" | "result";
 type Guest = { id: string; name: string };
@@ -15,6 +16,14 @@ const STATES: Record<string, [string, string]> = {
 };
 
 export default function RegisterPage() {
+  return (
+    <ConfigGate>
+      <Register />
+    </ConfigGate>
+  );
+}
+
+function Register() {
   const [step, setStep] = useState<Step>("form");
   const [form, setForm] = useState({ name: "", email: "", phone: "" });
   const [busy, setBusy] = useState(false);
