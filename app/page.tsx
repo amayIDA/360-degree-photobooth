@@ -50,7 +50,7 @@ function Booth() {
       try {
         if (!streamRef.current) {
           streamRef.current = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 1920 }, height: { ideal: 1080 }, facingMode: { ideal: "environment" } }, // rear camera; falls back to any camera (e.g. a laptop)
+            video: { width: { ideal: 1920 }, height: { ideal: 1080 }, facingMode: { ideal: "user" } }, // front camera; falls back to any camera (e.g. a laptop)
             audio: false,
           });
         }
