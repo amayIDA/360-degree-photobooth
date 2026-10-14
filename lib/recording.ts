@@ -36,6 +36,49 @@ export function record(stream: MediaStream, onTick: (secondsLeft: number, percen
   });
 }
 
+// White logos shown at the bottom centre of the video, one after another.
+const OVERLAY_LOGOS = ["/logos/proud2026-white.png", "/logos/proud-white.png", "/logos/dha-white.png"];
+const FADE = 0.45; // seconds to fade each logo in and out
+
+async function loadLogos(): Promise<HTMLImageElement[]> {
+  const load = (src: string) =>
+    new Promise<HTMLImageElement | null>(res => {
+      const img = new Image();
+      img.onload = () => res(img);
+      img.onerror = () => res(null);
+      img.src = src;
+    });
+  return (await Promise.all(OVERLAY_LOGOS.map(load))).filter((i): i is HTMLImageElement => !!i);
+}
+
+/** Bottom scrim + the logo for the current third of the timeline, faded in and out. */
+function drawOverlay(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, total: number, logos: HTMLImageElement[]) {
+  if (!logos.length) return;
+  const scrimH = h * 0.28;
+  const g = ctx.createLinearGradient(0, h - scrimH, 0, h);
+  g.addColorStop(0, "rgba(0,0,0,0)");
+  g.addColorStop(1, "rgba(0,0,0,0.45)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, h - scrimH, w, scrimH);
+
+  const seg = total / logos.length;
+  const idx = Math.min(logos.length - 1, Math.floor(t / seg));
+  const local = t - idx * seg;
+  const alpha = Math.max(0, Math.min(1, local / FADE, (seg - local) / FADE));
+  if (alpha <= 0) return;
+
+  const img = logos[idx];
+  const maxW = w * 0.42, maxH = h * 0.14;
+  const k = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight);
+  const lw = img.naturalWidth * k, lh = img.naturalHeight * k;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.shadowColor = "rgba(0,0,0,0.5)";
+  ctx.shadowBlur = h * 0.012;
+  ctx.drawImage(img, (w - lw) / 2, h - lh - h * 0.06, lw, lh);
+  ctx.restore();
+}
+
 /** Replays the clip onto a canvas: normal speed, then slow motion for the last SLOW_SECONDS. */
 export async function applySlowMo(blob: Blob): Promise<Blob> {
   const v = document.createElement("video");
@@ -54,6 +97,7 @@ export async function applySlowMo(blob: Blob): Promise<Blob> {
     v.onerror = () => rej(new Error("Could not read recording"));
   });
 
+  const logos = await loadLogos();
   const scale = Math.min(1, 1280 / v.videoWidth);
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(v.videoWidth * scale) & ~1;
@@ -74,9 +118,12 @@ export async function applySlowMo(blob: Blob): Promise<Blob> {
     stopped = true;
     setTimeout(() => rec.stop(), 150);
   };
+  const total = slowAt + SLOW_SECONDS / SLOW_RATE; // length of the finished video
+  let t0 = 0;
   const draw = () => {
     if (stopped) return;
     ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+    drawOverlay(ctx, canvas.width, canvas.height, (performance.now() - t0) / 1000, total, logos);
     if (v.currentTime >= slowAt && v.playbackRate !== SLOW_RATE) v.playbackRate = SLOW_RATE;
     requestAnimationFrame(draw);
   };
@@ -93,6 +140,7 @@ export async function applySlowMo(blob: Blob): Promise<Blob> {
     URL.revokeObjectURL(srcUrl);
     throw e;
   }
+  t0 = performance.now();
   draw();
   const out = await finished;
   v.remove();
