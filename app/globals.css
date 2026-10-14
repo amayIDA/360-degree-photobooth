@@ -1,54 +1,72 @@
-:root { color-scheme: dark; }
+:root {
+  color-scheme: light;
+  --ink: #0b2a4a;
+  --muted: #5b7088;
+  --bg: #f3f7fa;
+  --card: #ffffff;
+  --line: #d9e4ee;
+  --brand-1: #0d3f75;
+  --brand-2: #1b8a9a;
+  --brand: linear-gradient(90deg, var(--brand-1), var(--brand-2));
+  --danger: #c0392b;
+}
 * { box-sizing: border-box; }
-html, body { margin: 0; min-height: 100%; background: #0b0b0f; color: #f2f2f5; font-family: system-ui, -apple-system, sans-serif; }
+html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+body { background: radial-gradient(1200px 600px at 50% -10%, #e4f0f6 0%, var(--bg) 60%); background-attachment: fixed; }
 a { color: inherit; }
+.logo { display: block; width: 100%; height: auto; }
 
-/* ---------- launcher ---------- */
-.home { min-height: 100dvh; display: flex; flex-direction: column; gap: 16px; align-items: center; justify-content: center; padding: 16px; }
-.home a { display: block; width: min(90vw, 340px); text-align: center; padding: 18px; border-radius: 16px; background: #16161d; text-decoration: none; font-weight: 700; font-size: 1.15rem; }
-.home small { display: block; font-weight: 400; color: #a9a9b8; margin-top: 4px; }
-
-/* ---------- cards (register + download page) ---------- */
+/* ---------- pages + cards (name screen, download page) ---------- */
 .page { min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 20px; }
 .card { width: min(100%, 460px); text-align: center; }
-.card.boxed { background: #16161d; border-radius: 20px; padding: 28px; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
-.card h1 { margin: 0 0 6px; font-size: 1.7rem; }
-.lead { margin: 0 0 22px; color: #a9a9b8; }
-label { display: block; text-align: left; font-size: .85rem; color: #a9a9b8; margin: 14px 0 6px; }
-input { width: 100%; font: inherit; font-size: 1.1rem; padding: 14px; border-radius: 12px; border: 1px solid #2c2c38; background: #0f0f15; color: #fff; }
-input:focus { outline: 2px solid #3b82f6; border-color: transparent; }
-button, a.btn { display: block; width: 100%; margin-top: 24px; font: inherit; font-weight: 700; font-size: 1.2rem; padding: 16px; border: 0; border-radius: 999px; background: #3b82f6; color: #fff; cursor: pointer; text-decoration: none; text-align: center; }
-button.secondary { background: #2a2a36; margin-top: 12px; font-size: 1rem; }
+.card.boxed { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 32px 28px 28px; box-shadow: 0 18px 50px rgba(13, 63, 117, .12); }
+.card .brand { width: min(100%, 340px); margin: 0 auto 26px; }
+.card h1 { margin: 0 0 6px; font-size: 1.7rem; letter-spacing: -.01em; }
+.lead { margin: 0 0 22px; color: var(--muted); line-height: 1.45; }
+label { display: block; text-align: left; font-size: .85rem; font-weight: 600; color: var(--muted); margin: 14px 0 6px; }
+input { width: 100%; font: inherit; font-size: 1.15rem; padding: 15px 16px; border-radius: 14px; border: 1.5px solid var(--line); background: #fbfdfe; color: var(--ink); }
+input:focus { outline: none; border-color: var(--brand-2); box-shadow: 0 0 0 4px rgba(27, 138, 154, .18); }
+button, a.btn { display: block; width: 100%; margin-top: 22px; font: inherit; font-weight: 700; font-size: 1.15rem; padding: 16px; border: 0; border-radius: 999px; background: var(--brand); color: #fff; cursor: pointer; text-decoration: none; text-align: center; box-shadow: 0 8px 20px rgba(13, 63, 117, .25); }
+button.secondary { background: #e8eff5; color: var(--ink); box-shadow: none; margin-top: 12px; font-size: 1rem; }
 button:disabled { opacity: .5; }
-.note { min-height: 1.4em; margin-top: 14px; color: #b8b8c4; }
-.note.err { color: #ff7b7b; }
-canvas.qr { background: #fff; padding: 14px; border-radius: 16px; max-width: 100%; }
-.card video { width: 100%; border-radius: 16px; background: #000; margin-top: 16px; }
-.spinner { width: 48px; height: 48px; margin: 0 auto 16px; border: 5px solid #444; border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; }
+.note { min-height: 1.4em; margin-top: 14px; color: var(--muted); }
+.card video { width: 100%; border-radius: 18px; background: #000; margin-top: 16px; }
+.spinner { width: 48px; height: 48px; margin: 0 auto 16px; border: 5px solid var(--line); border-top-color: var(--brand-2); border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ---------- camera ---------- */
-.camera { position: fixed; inset: 0; background: #000; overflow: hidden; }
+.camera { position: fixed; inset: 0; background: #000; overflow: hidden; color: #fff; }
 .camera .preview { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .camera .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; gap: 12px; }
-.camera .msg { background: rgba(0,0,0,.55); backdrop-filter: blur(6px); }
+.camera .msg { background: rgba(8, 24, 44, .6); backdrop-filter: blur(8px); }
 .camera .msg.clear { background: transparent; backdrop-filter: none; }
-.camera .msg h1 { font-size: clamp(2rem, 7vw, 4.5rem); font-weight: 800; margin: 0; }
-.camera .msg p { font-size: clamp(1rem, 3vw, 1.6rem); color: #cfcfdb; margin: 0; }
+.camera .msg h1 { font-size: clamp(2rem, 7vw, 4.5rem); font-weight: 800; margin: 0; text-shadow: 0 2px 20px rgba(0,0,0,.5); }
+.camera .msg p { font-size: clamp(1rem, 3vw, 1.6rem); color: #e3edf5; margin: 0; text-shadow: 0 2px 12px rgba(0,0,0,.5); }
+.camera .msg .spinner { border-color: rgba(255,255,255,.3); border-top-color: #fff; }
+.camera .msg button { width: auto; padding: 16px 56px; margin-top: 12px; }
+.camera .msg button.secondary { background: rgba(255,255,255,.18); color: #fff; }
+.camera .msg { overflow: auto; }
+.camera .msg canvas.qr { max-width: 100%; height: auto; background: #fff; padding: 10px; border-radius: 16px; }
 .camera .count { font-size: min(45vw, 45vh); font-weight: 800; text-shadow: 0 4px 40px rgba(0,0,0,.8); pointer-events: none; animation: pop .9s ease-out; }
 @keyframes pop { from { transform: scale(1.6); opacity: .2; } to { transform: scale(1); opacity: 1; } }
-.camera .rec { position: absolute; top: max(16px, env(safe-area-inset-top)); left: 16px; display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,.55); padding: 8px 14px; border-radius: 999px; font-variant-numeric: tabular-nums; }
+
+/* logo badge over the live camera */
+.camera .badge { position: absolute; top: max(16px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 5; width: min(58vw, 380px); background: rgba(255,255,255,.96); border-radius: 999px; padding: 10px 26px; box-shadow: 0 8px 28px rgba(0,0,0,.35); pointer-events: none; }
+
+.camera .rec { position: absolute; top: max(88px, calc(env(safe-area-inset-top) + 72px)); left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,.55); padding: 8px 16px; border-radius: 999px; font-variant-numeric: tabular-nums; font-weight: 700; }
 .camera .rec::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: #ff3b3b; animation: blink 1s infinite; }
 @keyframes blink { 50% { opacity: .2; } }
-.camera .bar { position: absolute; left: 0; bottom: 0; height: 6px; background: #ff3b3b; }
-.camera .result { position: absolute; left: 0; top: 0; width: 50%; height: 100%; object-fit: contain; background: #000; z-index: 2; }
-.camera.has-result .msg { left: 50%; z-index: 3; background: rgba(0,0,0,.85); }
-@media (max-aspect-ratio: 1/1) {
-  .camera .result { width: 100%; height: 50%; }
-  .camera.has-result .msg { left: 0; top: 50%; }
-}
+.camera .bar { position: absolute; left: 0; bottom: 0; height: 6px; background: var(--brand-2); box-shadow: 0 0 12px var(--brand-2); }
 
-/* single-app layout */
-.camera .msg { overflow: auto; }
-.camera .msg button { width: auto; padding: 16px 56px; margin-top: 12px; }
-.camera .msg canvas.qr { max-width: 100%; height: auto; }
+/* result: video left, QR panel right (portrait: top / bottom) */
+.camera .result { position: absolute; left: 0; top: 0; width: 50%; height: 100%; object-fit: contain; background: #000; z-index: 2; }
+.camera.has-result .msg { left: 50%; z-index: 3; background: var(--card); color: var(--ink); backdrop-filter: none; gap: 14px; }
+.camera.has-result .msg h1 { font-size: clamp(1.6rem, 4vw, 2.6rem); text-shadow: none; }
+.camera.has-result .msg p { color: var(--muted); font-size: clamp(1rem, 2vw, 1.2rem); text-shadow: none; }
+.camera.has-result .msg .brand { width: min(80%, 360px); margin-bottom: 4px; }
+.camera.has-result .msg canvas.qr { padding: 0; border: 1px solid var(--line); padding: 10px; }
+.camera.has-result .msg button.secondary { background: #e8eff5; color: var(--ink); }
+@media (max-aspect-ratio: 1/1) {
+  .camera .result { width: 100%; height: 45%; }
+  .camera.has-result .msg { left: 0; top: 45%; }
+}

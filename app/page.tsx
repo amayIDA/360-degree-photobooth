@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import ConfigGate from "@/components/ConfigGate";
+import Logo from "@/components/Logo";
 import { getSupabase, BUCKET } from "@/lib/supabase";
 import { applySlowMo, record, sleep } from "@/lib/recording";
 
@@ -174,6 +175,7 @@ function Booth() {
     return (
       <div className="page">
         <form className="card boxed" onSubmit={register}>
+          <Logo className="brand" priority />
           <h1>Welcome 👋</h1>
           <p className="lead">Enter your name to start your video.</p>
           <label htmlFor="name">Name</label>
@@ -189,6 +191,12 @@ function Booth() {
     <div className={`camera ${step === "result" ? "has-result" : ""}`}>
       <video ref={previewRef} className="preview" autoPlay muted playsInline />
       {step === "result" && resultUrl && <video className="result" src={resultUrl} autoPlay muted loop playsInline />}
+
+      {step !== "result" && (
+        <div className="badge">
+          <Logo />
+        </div>
+      )}
 
       {step === "ready" && (
         <div className="overlay msg clear">
@@ -221,6 +229,7 @@ function Booth() {
 
       {step === "result" && (
         <div className="overlay msg">
+          <Logo className="brand" />
           <h1>{uploaded ? "Scan to download" : "Your video is ready!"}</h1>
           <canvas ref={qrRef} className="qr" />
           <p>

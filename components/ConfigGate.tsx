@@ -1,4 +1,5 @@
 import { isConfigured } from "@/lib/supabase";
+import Logo from "@/components/Logo";
 
 /** Shows a readable message instead of crashing when the Supabase env vars are missing. */
 export default function ConfigGate({ children }: { children: React.ReactNode }) {
@@ -6,6 +7,7 @@ export default function ConfigGate({ children }: { children: React.ReactNode }) 
   return (
     <div className="page">
       <div className="card boxed">
+        <Logo className="brand" />
         <h1>Setup needed</h1>
         <p className="lead">
           NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are missing. Add them in Vercel

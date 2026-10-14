@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { BUCKET, SUPABASE_URL } from "@/lib/supabase";
+import Logo from "@/components/Logo";
 
 type State = "waiting" | "ready" | "invalid" | "timeout";
 
@@ -40,6 +41,7 @@ export default function VideoPage() {
   return (
     <div className="page">
       <div className="card">
+        <Logo className="brand" priority />
         {state === "waiting" && (
           <>
             <div className="spinner" />
