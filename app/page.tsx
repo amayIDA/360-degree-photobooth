@@ -89,7 +89,8 @@ function Booth() {
     setBusy(true);
     setNote("Registering…");
     const row = { id: crypto.randomUUID(), name: name.trim() };
-    const { error } = await getSupabase().from("sessions").insert(row);
+    // email/phone are blank: sent so older tables that still require them keep working
+    const { error } = await getSupabase().from("sessions").insert({ ...row, email: "", phone: "" });
     setBusy(false);
     if (error) return setNote("Registration failed: " + error.message);
     setGuest(row);
