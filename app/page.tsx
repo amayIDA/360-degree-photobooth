@@ -129,7 +129,13 @@ function Booth() {
       setRec(null);
 
       setPhase("Making your slow-motion…");
-      const final = await applySlowMo(raw);
+      let final = raw;
+      try {
+        final = await applySlowMo(raw);
+      } catch (e) {
+        // browser refused playback/re-encoding: still deliver the normal-speed video
+        console.warn("Slow motion failed, using original clip", e);
+      }
 
       // The file name is known before the upload finishes, so the QR code can be shown straight away.
       const ext = final.type.includes("mp4") ? "mp4" : "webm";

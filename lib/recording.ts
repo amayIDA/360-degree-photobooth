@@ -39,10 +39,13 @@ export function record(stream: MediaStream, onTick: (secondsLeft: number, percen
 /** Replays the clip onto a canvas: normal speed, then slow motion for the last SLOW_SECONDS. */
 export async function applySlowMo(blob: Blob): Promise<Blob> {
   const v = document.createElement("video");
+  // iOS/Safari only allow script-started playback with these as real attributes, and on a visible element
+  v.setAttribute("muted", "");
+  v.setAttribute("playsinline", "");
   v.muted = true;
   v.playsInline = true;
   v.preload = "auto";
-  v.style.cssText = "position:fixed;width:2px;height:2px;opacity:0;pointer-events:none";
+  v.style.cssText = "position:fixed;left:0;bottom:0;width:160px;height:90px;opacity:0.01;pointer-events:none;z-index:-1";
   const srcUrl = URL.createObjectURL(blob);
   v.src = srcUrl;
   document.body.appendChild(v);
@@ -81,7 +84,15 @@ export async function applySlowMo(blob: Blob): Promise<Blob> {
   setTimeout(stop, (slowAt + SLOW_SECONDS / SLOW_RATE + 8) * 1000); // safety net
 
   rec.start(1000);
-  await v.play();
+  try {
+    await v.play();
+  } catch (e) {
+    stopped = true;
+    rec.stop();
+    v.remove();
+    URL.revokeObjectURL(srcUrl);
+    throw e;
+  }
   draw();
   const out = await finished;
   v.remove();
