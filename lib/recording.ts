@@ -1,11 +1,11 @@
-export const DURATION = 10; // seconds captured
-export const SLOW_SECONDS = 5; // the last N captured seconds are played in slow motion
+export const DURATION = 20; // seconds captured
+export const SLOW_SECONDS = 10; // the last N captured seconds are played in slow motion
 export const SLOW_RATE = 0.5;
 export const FPS = 30;
-export const UPLOAD_BPS = 2_500_000; // smaller file = faster upload (about 5 MB for the 15 s clip)
+export const UPLOAD_BPS = 2_500_000; // smaller file = faster upload (about 9 MB for the 30 s clip)
 
 const SLOW_AT = DURATION - SLOW_SECONDS;
-/** Length of the finished video: 5 s normal + 5 s of footage stretched to 10 s. */
+/** Length of the finished video: 10 s normal + 10 s of footage stretched to 20 s. */
 export const OUTPUT_SECONDS = SLOW_AT + SLOW_SECONDS / SLOW_RATE;
 
 // White logos shown at the bottom centre of the video, one after another.
