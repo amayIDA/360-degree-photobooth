@@ -1,12 +1,11 @@
 # 360 Photobooth
 
-A guest registers on one device, a second device counts down 3-2-1, records 10 seconds (the last 5 in slow motion), uploads it to Supabase, and the guest scans a QR code to download it.
+One app for the whole flow: a guest enters their name, the camera counts down 3-2-1, records 10 seconds (the last 5 in slow motion), uploads it to Supabase, and a QR code on the same screen lets them download it.
 
-- `/register`: registration + Start Capture + QR code (phone or iPad)
-- `/camera`: the camera (iPad or phone, needs HTTPS)
+- `/`: registration, then camera, then QR code (run it on an iPad or phone)
 - `/v`: page the QR code opens; waits for the upload, then shows the video and a download button
 
-Built with Next.js (App Router, TypeScript) and Supabase (Storage, Postgres, Realtime broadcast).
+Built with Next.js (App Router, TypeScript) and Supabase (Storage and Postgres).
 
 ## Setup
 
@@ -17,7 +16,7 @@ Built with Next.js (App Router, TypeScript) and Supabase (Storage, Postgres, Rea
 ## Deploy on Vercel
 
 1. Import this GitHub repo in Vercel.
-2. Add the four `NEXT_PUBLIC_*` variables from `.env.example` under Settings > Environment Variables.
-3. Deploy. Use `https://<your-app>.vercel.app/camera` and `/register` on your devices.
+2. Add `SUPABASE_URL` and `SUPABASE_ANON_KEY` (or the `NEXT_PUBLIC_` versions) under Settings > Environment Variables.
+3. Deploy, then open the app on the iPad (the camera needs HTTPS, which Vercel provides).
 
 Guest names are stored in the `sessions` table; view them in the Supabase dashboard.
