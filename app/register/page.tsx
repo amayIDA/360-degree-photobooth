@@ -25,7 +25,7 @@ export default function RegisterPage() {
 
 function Register() {
   const [step, setStep] = useState<Step>("form");
-  const [form, setForm] = useState({ name: "", email: "", phone: "" });
+  const [form, setForm] = useState({ name: "" });
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ text: string; err?: boolean }>({ text: "" });
   const [progress, setProgress] = useState<[string, string]>(["", ""]);
@@ -91,12 +91,7 @@ function Register() {
     e.preventDefault();
     setBusy(true);
     setNote({ text: "Registering…" });
-    const row = {
-      id: crypto.randomUUID(),
-      name: form.name.trim(),
-      email: form.email.trim(),
-      phone: form.phone.trim(),
-    };
+    const row = { id: crypto.randomUUID(), name: form.name.trim() };
     const { error } = await getSupabase().from("sessions").insert(row);
     setBusy(false);
     if (error) return setNote({ text: "Registration failed: " + error.message, err: true });
@@ -123,7 +118,7 @@ function Register() {
     guestRef.current = null;
     setGuest(null);
     sendRef.current("reset");
-    setForm({ name: "", email: "", phone: "" });
+    setForm({ name: "" });
     setLink(null);
     setBusy(false);
     setStep("form");
@@ -145,12 +140,6 @@ function Register() {
             <label htmlFor="name">Name</label>
             <input id="name" autoComplete="name" required value={form.name}
               onChange={e => setForm({ ...form, name: e.target.value })} />
-            <label htmlFor="email">Email</label>
-            <input id="email" type="email" autoComplete="email" required value={form.email}
-              onChange={e => setForm({ ...form, email: e.target.value })} />
-            <label htmlFor="phone">Phone</label>
-            <input id="phone" type="tel" autoComplete="tel" required value={form.phone}
-              onChange={e => setForm({ ...form, phone: e.target.value })} />
             <button type="submit" disabled={busy}>Register</button>
           </form>
         )}

@@ -16,12 +16,16 @@ drop policy if exists "anon can overwrite own upload" on storage.objects;
 create table if not exists public.sessions (
   id uuid primary key,
   name text not null,
-  email text not null,
-  phone text not null,
+  email text,
+  phone text,
   status text not null default 'registered',
   video_url text,
   created_at timestamptz not null default now()
 );
+
+-- For tables created earlier when email/phone were required
+alter table public.sessions alter column email drop not null;
+alter table public.sessions alter column phone drop not null;
 
 alter table public.sessions enable row level security;
 

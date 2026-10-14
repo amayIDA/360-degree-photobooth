@@ -20,4 +20,4 @@ Built with Next.js (App Router, TypeScript) and Supabase (Storage, Postgres, Rea
 2. Add the four `NEXT_PUBLIC_*` variables from `.env.example` under Settings > Environment Variables.
 3. Deploy. Use `https://<your-app>.vercel.app/camera` and `/register` on your devices.
 
-Guest names, emails and phone numbers are stored in the `sessions` table; view them in the Supabase dashboard.
+Guest names are stored in the `sessions` table; view them in the Supabase dashboard.
