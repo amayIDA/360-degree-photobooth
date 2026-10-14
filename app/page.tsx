@@ -5,7 +5,7 @@ import QRCode from "qrcode";
 import ConfigGate from "@/components/ConfigGate";
 import Logo from "@/components/Logo";
 import { getSupabase, BUCKET } from "@/lib/supabase";
-import { applySlowMo, record, sleep } from "@/lib/recording";
+import { captureFrames, renderFinal, sleep } from "@/lib/recording";
 
 const COUNTDOWN = 3;
 
@@ -27,6 +27,7 @@ function Booth() {
   const [note, setNote] = useState("");
   const [guest, setGuest] = useState<Guest | null>(null);
   const [phase, setPhase] = useState("");
+  const [percent, setPercent] = useState(0);
   const [count, setCount] = useState<number | null>(null);
   const [rec, setRec] = useState<{ left: number; pct: number } | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
@@ -119,6 +120,7 @@ function Booth() {
     if (!stream || !guest) return;
     setStep("running");
     setPhase("");
+    setPercent(0);
     try {
       for (let i = COUNTDOWN; i > 0; i--) {
         setCount(i);
@@ -126,17 +128,14 @@ function Booth() {
       }
       setCount(null);
 
-      const raw = await record(stream, (left, pct) => setRec({ left, pct }));
+      const video = previewRef.current;
+      if (!video) throw new Error("Camera is not ready yet");
+      const cap = await captureFrames(video, (left, pct) => setRec({ left, pct }));
       setRec(null);
 
-      setPhase("Making your slow-motion…");
-      let final = raw;
-      try {
-        final = await applySlowMo(raw);
-      } catch (e) {
-        // browser refused playback/re-encoding: still deliver the normal-speed video
-        console.warn("Slow motion failed, using original clip", e);
-      }
+      setPhase("Editing your video…");
+      const final = await renderFinal(cap, pct => setPercent(Math.round(pct)));
+      if (!final.size) throw new Error("The edited video came out empty");
 
       // The file name is known before the upload finishes, so the QR code can be shown straight away.
       const ext = final.type.includes("mp4") ? "mp4" : "webm";
@@ -210,7 +209,7 @@ function Booth() {
         <div className="overlay msg">
           <div className="spinner" />
           <h1>{phase || "Get ready…"}</h1>
-          {phase && <p>Hang tight, about 15 seconds.</p>}
+          {phase && <p>Adding slow motion and logos… {percent}%</p>}
         </div>
       )}
 

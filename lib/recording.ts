@@ -1,8 +1,17 @@
-export const DURATION = 10; // seconds recorded
-export const SLOW_SECONDS = 5; // last N seconds are slowed down
+export const DURATION = 10; // seconds captured
+export const SLOW_SECONDS = 5; // the last N captured seconds are played in slow motion
 export const SLOW_RATE = 0.5;
-const RAW_BPS = 6_000_000; // quality of the local recording
-export const UPLOAD_BPS = 2_000_000; // smaller file = faster upload (about 4 MB for the 15 s clip)
+export const FPS = 30;
+export const UPLOAD_BPS = 2_500_000; // smaller file = faster upload (about 5 MB for the 15 s clip)
+
+const SLOW_AT = DURATION - SLOW_SECONDS;
+/** Length of the finished video: 5 s normal + 5 s of footage stretched to 10 s. */
+export const OUTPUT_SECONDS = SLOW_AT + SLOW_SECONDS / SLOW_RATE;
+
+// White logos shown at the bottom centre of the video, one after another.
+const OVERLAY_LOGOS = ["/logos/proud2026-white.png", "/logos/proud-white.png", "/logos/dha-white.png"];
+const LOGO_FADE = 0.45; // seconds to fade each logo in and out
+const EDGE_FADE = 0.25; // fade from / to black at the very start and end
 
 export const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
@@ -11,34 +20,63 @@ function pickMime(): string {
   return types.find(t => typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(t)) ?? "";
 }
 
-function makeRecorder(s: MediaStream, bps: number) {
-  const mimeType = pickMime();
-  return new MediaRecorder(s, mimeType ? { mimeType, videoBitsPerSecond: bps } : undefined);
-}
+type Frame = { t: number; blob: Blob };
+export type Capture = { frames: Frame[]; width: number; height: number };
 
-/** Records the camera stream for DURATION seconds. */
-export function record(stream: MediaStream, onTick: (secondsLeft: number, percent: number) => void): Promise<Blob> {
-  return new Promise(resolve => {
-    const rec = makeRecorder(stream, RAW_BPS);
-    const chunks: Blob[] = [];
-    rec.ondataavailable = e => e.data.size && chunks.push(e.data);
+/**
+ * Phase 1: grabs ~30 frames per second from the live preview for DURATION seconds and keeps them as JPEGs.
+ * Reading frames from the playing preview works in every browser, unlike replaying a recorded clip from script
+ * (which iOS blocks), and gives the editor exact timestamps to re-time.
+ */
+export function captureFrames(video: HTMLVideoElement, onTick: (secondsLeft: number, percent: number) => void): Promise<Capture> {
+  return new Promise((resolve, reject) => {
+    const vw = video.videoWidth, vh = video.videoHeight;
+    if (!vw || !vh) return reject(new Error("Camera is not ready yet"));
+    const scale = Math.min(1, 1280 / vw);
+    const width = Math.round(vw * scale) & ~1;
+    const height = Math.round(vh * scale) & ~1;
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d")!;
+
+    const frames: Frame[] = [];
     const t0 = performance.now();
-    const tick = setInterval(() => {
-      const s = (performance.now() - t0) / 1000;
-      onTick(Math.max(0, Math.ceil(DURATION - s)), Math.min(100, (s / DURATION) * 100));
-    }, 100);
-    rec.onstop = () => {
-      clearInterval(tick);
-      resolve(new Blob(chunks, { type: rec.mimeType }));
+    let last = -1, pending = 0, finished = false;
+    const finish = () => {
+      if (!finished || pending > 0) return;
+      frames.sort((a, b) => a.t - b.t);
+      if (frames.length < 2) return reject(new Error("No video frames were captured"));
+      resolve({ frames, width, height });
     };
-    rec.start(1000);
-    setTimeout(() => rec.stop(), DURATION * 1000);
+
+    const loop = () => {
+      const t = (performance.now() - t0) / 1000;
+      if (t >= DURATION) {
+        finished = true;
+        onTick(0, 100);
+        return finish();
+      }
+      if (t - last >= 1 / FPS - 0.005) {
+        last = t;
+        ctx.drawImage(video, 0, 0, width, height);
+        pending++;
+        canvas.toBlob(
+          b => {
+            if (b) frames.push({ t, blob: b });
+            pending--;
+            finish();
+          },
+          "image/jpeg",
+          0.85
+        );
+      }
+      onTick(Math.max(0, Math.ceil(DURATION - t)), (t / DURATION) * 100);
+      setTimeout(loop, 1000 / FPS / 2); // timer, not requestAnimationFrame: that is paused for hidden tabs
+    };
+    loop();
   });
 }
-
-// White logos shown at the bottom centre of the video, one after another.
-const OVERLAY_LOGOS = ["/logos/proud2026-white.png", "/logos/proud-white.png", "/logos/dha-white.png"];
-const FADE = 0.45; // seconds to fade each logo in and out
 
 async function loadLogos(): Promise<HTMLImageElement[]> {
   const load = (src: string) =>
@@ -52,7 +90,7 @@ async function loadLogos(): Promise<HTMLImageElement[]> {
 }
 
 /** Bottom scrim + the logo for the current third of the timeline, faded in and out. */
-function drawOverlay(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, total: number, logos: HTMLImageElement[]) {
+function drawOverlay(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, logos: HTMLImageElement[]) {
   if (!logos.length) return;
   const scrimH = h * 0.28;
   const g = ctx.createLinearGradient(0, h - scrimH, 0, h);
@@ -61,10 +99,10 @@ function drawOverlay(ctx: CanvasRenderingContext2D, w: number, h: number, t: num
   ctx.fillStyle = g;
   ctx.fillRect(0, h - scrimH, w, scrimH);
 
-  const seg = total / logos.length;
+  const seg = OUTPUT_SECONDS / logos.length;
   const idx = Math.min(logos.length - 1, Math.floor(t / seg));
   const local = t - idx * seg;
-  const alpha = Math.max(0, Math.min(1, local / FADE, (seg - local) / FADE));
+  const alpha = Math.max(0, Math.min(1, local / LOGO_FADE, (seg - local) / LOGO_FADE));
   if (alpha <= 0) return;
 
   const img = logos[idx];
@@ -79,71 +117,93 @@ function drawOverlay(ctx: CanvasRenderingContext2D, w: number, h: number, t: num
   ctx.restore();
 }
 
-/** Replays the clip onto a canvas: normal speed, then slow motion for the last SLOW_SECONDS. */
-export async function applySlowMo(blob: Blob): Promise<Blob> {
-  const v = document.createElement("video");
-  // iOS/Safari only allow script-started playback with these as real attributes, and on a visible element
-  v.setAttribute("muted", "");
-  v.setAttribute("playsinline", "");
-  v.muted = true;
-  v.playsInline = true;
-  v.preload = "auto";
-  v.style.cssText = "position:fixed;left:0;bottom:0;width:160px;height:90px;opacity:0.01;pointer-events:none;z-index:-1";
-  const srcUrl = URL.createObjectURL(blob);
-  v.src = srcUrl;
-  document.body.appendChild(v);
-  await new Promise<void>((res, rej) => {
-    v.onloadedmetadata = () => res();
-    v.onerror = () => rej(new Error("Could not read recording"));
-  });
+/** Output time (s) to captured time (s): normal speed first, then slow motion. */
+const sourceTime = (t: number) => (t < SLOW_AT ? t : SLOW_AT + (t - SLOW_AT) * SLOW_RATE);
 
+/**
+ * Phase 2: edits the captured frames into the finished video and records it.
+ * - last SLOW_SECONDS in slow motion, with frame blending so it stays smooth instead of stuttering
+ * - logos fading in and out one after another at the bottom centre
+ * - short fade from and to black
+ */
+export async function renderFinal(cap: Capture, onProgress?: (percent: number) => void): Promise<Blob> {
+  const { frames, width, height } = cap;
   const logos = await loadLogos();
-  const scale = Math.min(1, 1280 / v.videoWidth);
+
   const canvas = document.createElement("canvas");
-  canvas.width = Math.round(v.videoWidth * scale) & ~1;
-  canvas.height = Math.round(v.videoHeight * scale) & ~1;
+  canvas.width = width;
+  canvas.height = height;
   const ctx = canvas.getContext("2d")!;
 
-  const rec = makeRecorder(canvas.captureStream(30), UPLOAD_BPS);
+  const bitmaps = new Map<number, ImageBitmap>();
+  const bitmap = async (i: number) => {
+    let b = bitmaps.get(i);
+    if (!b) {
+      b = await createImageBitmap(frames[i].blob);
+      bitmaps.set(i, b);
+      for (const [k, v] of bitmaps) if (k < i - 2) { v.close(); bitmaps.delete(k); }
+    }
+    return b;
+  };
+
+  // paint the first frame before recording starts so the stream never begins empty
+  ctx.drawImage(await bitmap(0), 0, 0, width, height);
+
+  const mimeType = pickMime();
+  const rec = new MediaRecorder(canvas.captureStream(FPS), mimeType ? { mimeType, videoBitsPerSecond: UPLOAD_BPS } : undefined);
   const chunks: Blob[] = [];
   rec.ondataavailable = e => e.data.size && chunks.push(e.data);
   const finished = new Promise<Blob>(r => {
     rec.onstop = () => r(new Blob(chunks, { type: rec.mimeType }));
   });
-
-  const slowAt = DURATION - SLOW_SECONDS;
-  let stopped = false;
-  const stop = () => {
-    if (stopped) return;
-    stopped = true;
-    setTimeout(() => rec.stop(), 150);
-  };
-  const total = slowAt + SLOW_SECONDS / SLOW_RATE; // length of the finished video
-  let t0 = 0;
-  const draw = () => {
-    if (stopped) return;
-    ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
-    drawOverlay(ctx, canvas.width, canvas.height, (performance.now() - t0) / 1000, total, logos);
-    if (v.currentTime >= slowAt && v.playbackRate !== SLOW_RATE) v.playbackRate = SLOW_RATE;
-    requestAnimationFrame(draw);
-  };
-  v.onended = stop;
-  setTimeout(stop, (slowAt + SLOW_SECONDS / SLOW_RATE + 8) * 1000); // safety net
-
   rec.start(1000);
+
+  const lastT = frames[frames.length - 1].t;
+  const start = performance.now();
+  let idx = 0;
   try {
-    await v.play();
-  } catch (e) {
-    stopped = true;
-    rec.stop();
-    v.remove();
-    URL.revokeObjectURL(srcUrl);
-    throw e;
+    for (let k = 0; ; k++) {
+      const t = k / FPS;
+      if (t >= OUTPUT_SECONDS) break;
+      const s = Math.min(sourceTime(t), lastT);
+      while (idx < frames.length - 2 && frames[idx + 1].t <= s) idx++;
+
+      // Load everything this frame needs BEFORE drawing: awaiting in the middle of a draw lets the recorder
+      // capture a half-painted canvas (a frame without logos).
+      const a = await bitmap(idx);
+      let blend: ImageBitmap | null = null;
+      let w = 0;
+      if (t >= SLOW_AT) {
+        const f0 = frames[idx].t, f1 = frames[idx + 1].t;
+        w = Math.min(1, Math.max(0, (s - f0) / (f1 - f0 || 1)));
+        if (w > 0.02) blend = await bitmap(idx + 1);
+      }
+
+      ctx.globalAlpha = 1;
+      ctx.drawImage(a, 0, 0, width, height);
+      if (blend) {
+        ctx.globalAlpha = w;
+        ctx.drawImage(blend, 0, 0, width, height);
+        ctx.globalAlpha = 1;
+      }
+
+      drawOverlay(ctx, width, height, t, logos);
+
+      const fade = Math.min(1, t / EDGE_FADE, (OUTPUT_SECONDS - t) / EDGE_FADE);
+      if (fade < 1) {
+        ctx.fillStyle = `rgba(0,0,0,${1 - fade})`;
+        ctx.fillRect(0, 0, width, height);
+      }
+
+      onProgress?.((t / OUTPUT_SECONDS) * 100);
+      const wait = start + ((k + 1) / FPS) * 1000 - performance.now(); // keep real-time pace for the recorder
+      if (wait > 0) await sleep(wait);
+    }
+    await sleep(250);
+  } finally {
+    if (rec.state !== "inactive") rec.stop();
+    bitmaps.forEach(b => b.close());
+    bitmaps.clear();
   }
-  t0 = performance.now();
-  draw();
-  const out = await finished;
-  v.remove();
-  URL.revokeObjectURL(srcUrl);
-  return out;
+  return finished;
 }
